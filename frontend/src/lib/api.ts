@@ -1,6 +1,6 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:5000/api';
+  'https://rotto-garage-1.onrender.com/api';
 
 export const TOKEN_KEY = 'rotto_token';
 
