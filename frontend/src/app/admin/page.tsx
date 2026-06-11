@@ -21,12 +21,21 @@ interface AdminStats {
   };
 }
 
-interface PopulatedCar extends Car {
-  userId: { _id: string; name: string; email: string } | string;
+interface PopulatedCar extends Omit<Car, "userId"> {
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
 }
 
-interface PopulatedBooking extends Booking {
-  userId: { _id: string; name: string; email: string } | string;
+interface PopulatedBooking extends Omit<Booking, "userId" | "carId"> {
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
+
   carId: Car | string;
 }
 
