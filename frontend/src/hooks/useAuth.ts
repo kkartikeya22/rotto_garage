@@ -11,24 +11,39 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
+// ── Shared singleton state ──────────────────────────────────────────────────
+let sharedState: AuthState = {
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+};
+
+const listeners = new Set<(s: AuthState) => void>();
+
+function setSharedState(next: AuthState) {
+  sharedState = next;
+  listeners.forEach((fn) => fn(next));
+}
+// ───────────────────────────────────────────────────────────────────────────
+
 export const useAuth = () => {
   const router = useRouter();
+  const [state, setState] = useState<AuthState>(sharedState);
 
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-  });
-
+  // Subscribe this component instance to shared updates
   useEffect(() => {
+    listeners.add(setState);
+    return () => { listeners.delete(setState); };
+  }, []);
+
+  // Bootstrap from localStorage once on first mount
+  useEffect(() => {
+    if (!sharedState.isLoading) return; // already bootstrapped by another instance
+
     const token = localStorage.getItem(TOKEN_KEY);
 
     if (!token) {
-      setState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+      setSharedState({ user: null, isLoading: false, isAuthenticated: false });
       return;
     }
 
@@ -37,42 +52,21 @@ export const useAuth = () => {
 
       if (payload.exp * 1000 < Date.now()) {
         localStorage.removeItem(TOKEN_KEY);
-
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-        });
-
+        setSharedState({ user: null, isLoading: false, isAuthenticated: false });
         return;
       }
 
-      setState({
-        user: payload as User,
-        isLoading: false,
-        isAuthenticated: true,
-      });
+      setSharedState({ user: payload as User, isLoading: false, isAuthenticated: true });
     } catch {
       localStorage.removeItem(TOKEN_KEY);
-
-      setState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+      setSharedState({ user: null, isLoading: false, isAuthenticated: false });
     }
   }, []);
 
   const login = useCallback(
     (token: string, user: User) => {
       localStorage.setItem(TOKEN_KEY, token);
-
-      setState({
-        user,
-        isLoading: false,
-        isAuthenticated: true,
-      });
-
+      setSharedState({ user, isLoading: false, isAuthenticated: true });
       router.push('/dashboard');
     },
     [router]
@@ -80,19 +74,9 @@ export const useAuth = () => {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
-
-    setState({
-      user: null,
-      isLoading: false,
-      isAuthenticated: false,
-    });
-
+    setSharedState({ user: null, isLoading: false, isAuthenticated: false });
     router.push('/login');
   }, [router]);
 
-  return {
-    ...state,
-    login,
-    logout,
-  };
+  return { ...state, login, logout };
 };
