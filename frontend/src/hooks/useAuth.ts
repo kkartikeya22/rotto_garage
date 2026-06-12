@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { TOKEN_KEY } from '@/lib/api';
@@ -78,5 +78,11 @@ export const useAuth = () => {
     router.push('/login');
   }, [router]);
 
-  return { ...state, login, logout };
+  // Memoize so consumers destructuring `user` / `isAuthenticated` / `isLoading`
+  // get a referentially stable object — the returned object only changes
+  // identity when `state`, `login`, or `logout` actually change.
+  return useMemo(
+    () => ({ ...state, login, logout }),
+    [state, login, logout]
+  );
 };
