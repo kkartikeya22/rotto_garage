@@ -14,21 +14,7 @@ export default function HomePage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  useEffect(() => {
-    console.log('HOME PAGE EFFECT', {
-      isLoading,
-      isAuthenticated,
-    });
-
-    if (!isLoading) {
-      console.log(
-        'ATTEMPTING REDIRECT TO',
-        isAuthenticated ? '/dashboard' : '/login'
-      );
-
-      router.replace(isAuthenticated ? '/dashboard' : '/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
+  
   return (
     <div className="rt-loading">
       <span>Loading...</span>
