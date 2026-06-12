@@ -125,7 +125,7 @@ export default function AdminPage() {
     if (!isLoading && !isAuthenticated) router.replace('/login');
     if (!isLoading && isAuthenticated && user?.role !== 'admin')
       router.replace('/dashboard');
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user?.role, router]);
 
   // ─── Fetch stats ──────────────────────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ export default function AdminPage() {
       }
     };
     load();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.role]);
 
   // ─── Fetch cars ───────────────────────────────────────────────────────────────
 
@@ -168,7 +168,7 @@ export default function AdminPage() {
     if (isAuthenticated && user?.role === 'admin' && activeTab === 'cars') {
       fetchCars();
     }
-  }, [isAuthenticated, user, activeTab, fetchCars]);
+  }, [isAuthenticated, user?.role, activeTab, fetchCars]);
 
   // ─── Fetch bookings ───────────────────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ export default function AdminPage() {
     if (isAuthenticated && user?.role === 'admin' && activeTab === 'bookings') {
       fetchBookings();
     }
-  }, [isAuthenticated, user, activeTab, fetchBookings]);
+  }, [isAuthenticated, user?.role, activeTab, fetchBookings]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────────
 
