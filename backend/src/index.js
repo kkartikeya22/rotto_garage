@@ -4,9 +4,9 @@ const express = require('express');
 const cors = require('cors');
 
 const connectDB = require('./config/db');
-
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
+const { slidingWindowRateLimiter } = require('./middleware/rateLimiter');
 
 const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
@@ -27,6 +27,17 @@ app.use(
 app.use(express.json());
 
 app.use(requestLogger);
+
+/*
+ * Global rate limiter
+ * 100 requests per minute per IP
+ */
+app.use(
+  slidingWindowRateLimiter({
+    windowMs: 60 * 1000,
+    maxRequests: 100,
+  })
+);
 
 // Routes
 app.use('/api/auth', authRoutes);
