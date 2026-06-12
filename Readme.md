@@ -1,4 +1,4 @@
-# Rotto Garage 🚗
+# Rotto Garage
 
 ## Live Demo
 
