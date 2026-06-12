@@ -9,9 +9,16 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      router.replace(isAuthenticated ? '/dashboard' : '/login');
+    if (isLoading) return;
+
+    const token = localStorage.getItem('token');
+
+    if (!token || !isAuthenticated) {
+      router.replace('/login');
+      return;
     }
+
+    router.replace('/dashboard');
   }, [isAuthenticated, isLoading, router]);
 
   return (
