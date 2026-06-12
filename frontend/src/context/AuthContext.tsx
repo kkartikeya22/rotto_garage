@@ -32,14 +32,11 @@ export function AuthProvider({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🚀 AUTH PROVIDER STARTED');
 
     const token = localStorage.getItem(TOKEN_KEY);
 
-    console.log('TOKEN:', token);
 
     if (!token) {
-      console.log('❌ NO TOKEN');
 
       setUser(null);
       setIsLoading(false);
@@ -50,7 +47,6 @@ export function AuthProvider({
       const payload = JSON.parse(atob(token.split('.')[1]));
 
       if (payload.exp * 1000 < Date.now()) {
-        console.log('❌ TOKEN EXPIRED');
 
         localStorage.removeItem(TOKEN_KEY);
         setUser(null);
@@ -58,11 +54,9 @@ export function AuthProvider({
         return;
       }
 
-      console.log('✅ USER AUTHENTICATED');
 
       setUser(payload as User);
     } catch (err) {
-      console.log('❌ TOKEN PARSE FAILED', err);
 
       localStorage.removeItem(TOKEN_KEY);
       setUser(null);
