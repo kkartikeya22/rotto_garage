@@ -249,19 +249,16 @@ Booking modal displaying user vehicles and successfully creating bookings.
 
 ## Hard Feature
 
-**Option chosen:**  
-Service Booking Management
+**Options Chosen:**
+- Sliding Window Rate Limiter
+- Optimistic UI
 
-**Approach:**  
+**Approach:**
 
-Implemented the booking workflow that was left incomplete in the starter code.
+### Sliding Window Rate Limiter
+Implemented a sliding window rate-limiting mechanism on the backend to prevent excessive API requests. Maximum 10 requests in 1 minute.
 
-The work included:
+### Optimistic UI
+Implemented optimistic updates for booking-related actions to improve user experience. Instead of waiting for the server response, the UI immediately reflects the expected result when a booking is created or updated.
 
-- Creating service bookings
-- Displaying user bookings
-- Loading user cars for booking selection
-- Dashboard statistics (cars, bookings, pending bookings)
-- Connecting bookings with cars using MongoDB relationships
-
-The goal was to make the booking flow functional from end to end, allowing users to add cars, create bookings, view their booking history, and track booking status.
+The goal was to provide a smooth booking experience while ensuring the backend remains protected from excessive request traffic.
