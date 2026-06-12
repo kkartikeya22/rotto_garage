@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -164,11 +164,20 @@ export default function AdminPage() {
     }
   }, [carsPage]);
 
+  // Tracks the last params we actually fetched for, so re-renders that don't
+  // change anything meaningful (e.g. from setStats/setBookings elsewhere)
+  // never re-trigger a fetch.
+  const lastCarsFetchKey = useRef<string | null>(null);
+
   useEffect(() => {
     if (isAuthenticated && user?.role === 'admin' && activeTab === 'cars') {
-      fetchCars();
+      const key = `${carsPage}`;
+      if (lastCarsFetchKey.current !== key) {
+        lastCarsFetchKey.current = key;
+        fetchCars();
+      }
     }
-  }, [isAuthenticated, user?.role, activeTab, fetchCars]);
+  }, [isAuthenticated, user?.role, activeTab, carsPage, fetchCars]);
 
   // ─── Fetch bookings ───────────────────────────────────────────────────────────
 
@@ -190,11 +199,20 @@ export default function AdminPage() {
     }
   }, [bookingsPage, statusFilter]);
 
+  // Same guard as the cars effect — only refetch when (tab, page, filter)
+  // actually changes, never as a side-effect of unrelated state updates
+  // (e.g. handleStatusChange's setBookings/setStats calls).
+  const lastBookingsFetchKey = useRef<string | null>(null);
+
   useEffect(() => {
     if (isAuthenticated && user?.role === 'admin' && activeTab === 'bookings') {
-      fetchBookings();
+      const key = `${bookingsPage}:${statusFilter}`;
+      if (lastBookingsFetchKey.current !== key) {
+        lastBookingsFetchKey.current = key;
+        fetchBookings();
+      }
     }
-  }, [isAuthenticated, user?.role, activeTab, fetchBookings]);
+  }, [isAuthenticated, user?.role, activeTab, bookingsPage, statusFilter, fetchBookings]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────────
 
