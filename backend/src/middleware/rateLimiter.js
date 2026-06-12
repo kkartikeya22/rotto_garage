@@ -1,26 +1,32 @@
 // src/middleware/rateLimiter.js
 
 /**
- * True sliding-window rate limiter, keyed by IP, no external deps.
- *
- * Unlike a fixed window (which resets at clock boundaries and can let
- * 2x the limit through right at the edge), this recomputes the count
- * from actual request timestamps every time, so the limit holds over
- * ANY rolling windowMs-length interval.
+ * sliding-window rate limiter, keyed by IP.
  */
-function slidingWindowRateLimiter({ windowMs = 60_000, maxRequests = 10 } = {}) {
-  // ip -> array of request timestamps (ms) within the current window
+function slidingWindowRateLimiter({
+  windowMs = 60_000,
+  maxRequests = 10,
+} = {}) {
   const requestLog = new Map();
 
-  // Periodic sweep so the Map doesn't grow unbounded with stale IPs
+  console.log(
+    `[RATE LIMITER INIT] windowMs=${windowMs} maxRequests=${maxRequests}`
+  );
+
   const cleanupInterval = setInterval(() => {
     const cutoff = Date.now() - windowMs;
+
     for (const [ip, timestamps] of requestLog.entries()) {
       const fresh = timestamps.filter((t) => t > cutoff);
-      if (fresh.length === 0) requestLog.delete(ip);
-      else requestLog.set(ip, fresh);
+
+      if (fresh.length === 0) {
+        requestLog.delete(ip);
+      } else {
+        requestLog.set(ip, fresh);
+      }
     }
   }, windowMs);
+
   cleanupInterval.unref?.();
 
   return function rateLimiter(req, res, next) {
@@ -28,13 +34,33 @@ function slidingWindowRateLimiter({ windowMs = 60_000, maxRequests = 10 } = {}) 
     const now = Date.now();
     const windowStart = now - windowMs;
 
-    const timestamps = (requestLog.get(ip) || []).filter((t) => t > windowStart);
+    const timestamps = (requestLog.get(ip) || []).filter(
+      (t) => t > windowStart
+    );
+
+    console.log('---------------------------');
+    console.log('[RATE LIMIT]');
+    console.log('IP:', ip);
+    console.log('Stored Requests:', timestamps.length);
+    console.log('Max Requests:', maxRequests);
+    console.log(
+      'Timestamps:',
+      timestamps.map((t) => new Date(t).toISOString())
+    );
 
     if (timestamps.length >= maxRequests) {
       const oldest = timestamps[0];
-      const retryAfterSec = Math.max(1, Math.ceil((oldest + windowMs - now) / 1000));
+
+      const retryAfterSec = Math.max(
+        1,
+        Math.ceil((oldest + windowMs - now) / 1000)
+      );
+
+      console.log('🚫 BLOCKED');
+      console.log('Retry After:', retryAfterSec, 'seconds');
 
       res.setHeader('Retry-After', String(retryAfterSec));
+
       return res.status(429).json({
         error: 'Too many requests, please slow down.',
         retryAfter: retryAfterSec,
@@ -43,6 +69,10 @@ function slidingWindowRateLimiter({ windowMs = 60_000, maxRequests = 10 } = {}) 
 
     timestamps.push(now);
     requestLog.set(ip, timestamps);
+
+    console.log('✅ ALLOWED');
+    console.log('New Count:', timestamps.length);
+
     next();
   };
 }
