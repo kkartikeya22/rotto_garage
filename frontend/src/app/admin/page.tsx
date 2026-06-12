@@ -222,34 +222,62 @@ export default function AdminPage() {
     }
   };
 
+  /**
+   * ── Optimistic status update (Hard Feature D) ───────────────────────────────
+   *
+   * The booking list AND the stat cards are updated immediately, before the
+   * API call resolves — the dropdown reflects the new status instantly with
+   * no spinner. If the request fails, both the booking and the stats are
+   * rolled back to their exact previous values and an error banner is shown.
+   */
   const handleStatusChange = async (id: string, newStatus: Booking['status']) => {
-    // Capture the old status before the optimistic update so we can adjust stats
     const oldBooking = bookings.find((b) => b._id === id);
-    const oldStatus  = oldBooking?.status;
+    if (!oldBooking) return;
+    const oldStatus = oldBooking.status;
 
+    // Snapshot current state so we can roll back precisely on failure
+    const previousBookings = bookings;
+    const previousStats = stats;
+
+    // 1. Optimistically update the booking list
+    setBookings((prev) =>
+      prev.map((b) => (b._id === id ? { ...b, status: newStatus } : b))
+    );
+
+    // 2. Optimistically update the stat cards
+    if (stats) {
+      const oldKey = statusToStatKey(oldStatus);
+      const newKey = statusToStatKey(newStatus);
+      setStats({
+        ...stats,
+        bookingsByStatus: {
+          ...stats.bookingsByStatus,
+          [oldKey]: Math.max(0, stats.bookingsByStatus[oldKey] - 1),
+          [newKey]: stats.bookingsByStatus[newKey] + 1,
+        },
+      });
+    }
+
+    // Clear any stale error from a previous failed attempt
+    setBookingsError('');
+
+    // 3. Fire the request. Roll back everything on failure.
     try {
       const res = await api.put(`/bookings/${id}/status`, { status: newStatus });
 
-      // Update the booking list optimistically
+      // Reconcile with the server's response (in case it differs)
       setBookings((prev) =>
         prev.map((b) => (b._id === id ? { ...b, status: res.data.status } : b))
       );
-
-      // Update the stat cards so the counts reflect the change immediately
-      if (stats && oldStatus) {
-        const oldKey = statusToStatKey(oldStatus);
-        const newKey = statusToStatKey(newStatus);
-        setStats({
-          ...stats,
-          bookingsByStatus: {
-            ...stats.bookingsByStatus,
-            [oldKey]: Math.max(0, stats.bookingsByStatus[oldKey] - 1),
-            [newKey]: stats.bookingsByStatus[newKey] + 1,
-          },
-        });
-      }
     } catch (err) {
-      setBookingsError(err instanceof Error ? err.message : 'Failed to update status');
+      // Roll back to the exact pre-update snapshot
+      setBookings(previousBookings);
+      setStats(previousStats);
+      setBookingsError(
+        err instanceof Error
+          ? `Failed to update status: ${err.message}`
+          : 'Failed to update status — change reverted'
+      );
     }
   };
 
@@ -573,7 +601,7 @@ function AdminBookingRow({
         )}
       </div>
 
-      {/* Right: status dropdown */}
+      {/* Right: status dropdown — updates instantly (optimistic UI) */}
       <div style={{ display: 'flex', alignItems: 'flex-start', paddingTop: '0.125rem' }}>
         {allowed.length > 0 ? (
           <select
